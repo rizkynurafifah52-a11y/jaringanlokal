@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tarik Tambang Jaringan</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1a202c;
+            color: white;
+            overflow-x: hidden;
+        }
+
+        .pixel-font {
+            font-family: 'Press Start 2P', cursive;
+        }
+
+        .game-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .rope {
+            height: 10px;
+            background: repeating-linear-gradient(
+                45deg,
+                #8b4513,
+                #8b4513 10px,
+                #a0522d 10px,
+                #a0522d 20px
+            );
+            position: absolute;
+            top: 50%;
+            width: 200%;
+            left: -50%;
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 10;
+        }
+
+        .marker {
+            width: 4px;
+            height: 40px;
+            background: #ff0000;
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            z-index: 11;
+        }
+
+        .character {
+            font-size: 3rem;
+            transition: all 0.5s;
+            position: relative;
+            z-index: 20;
+        }
+
+        .team-label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+
+        .answer-btn {
+            transition: all 0.2s;
+        }
+
+        .answer-btn:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.1);
+        }
+
+        .shake {
+            animation: shake 0.5s;
+        }
+
+        @keyframes shake {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            10% { transform: translate(-1px, -2px) rotate(-1deg); }
+            20% { transform: translate(-3px, 0px) rotate(1deg); }
+            30% { transform: translate(3px, 2px) rotate(0deg); }
+            40% { transform: translate(1px, -1px) rotate(1deg); }
+            50% { transform: translate(-1px, 2px) rotate(-1deg); }
+            60% { transform: translate(-3px, 1px) rotate(0deg); }
+            70% { transform: translate(3px, 1px) rotate(-1deg); }
+            80% { transform: translate(-1px, -1px) rotate(1deg); }
+            90% { transform: translate(1px, 2px) rotate(0deg); }
+            100% { transform: translate(1px, -2px) rotate(-1deg); }
+        }
+
+        .overlay-screen {
+            background: rgba(0, 0, 0, 0.95);
+            backdrop-filter: blur(8px);
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <!-- Audio Element (Direct URL converted to Raw Content for playback compatibility) -->
+    <audio id="bgMusic" loop>
+        <source src="https://raw.githubusercontent.com/rizkynurafifah52-a11y/Jaringan-lokal-dan-internet/main/Victory_At_Recess.mp3" type="audio/mpeg">
+        Browser Anda tidak mendukung elemen audio.
+    </audio>
+
+    <div class="game-container bg-gray-800 rounded-3xl shadow-2xl p-6 border-4 border-blue-500 min-h-[600px] flex flex-col">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-2xl md:text-3xl font-bold text-blue-400 mb-2">NETWORK TUG OF WAR</h1>
+            <div class="flex justify-center items-center gap-4">
+                <p class="text-gray-400 text-sm">Jawab pertanyaan untuk menarik koneksi internet!</p>
+                <button id="musicToggle" onclick="toggleMusic()" class="bg-gray-700 hover:bg-gray-600 p-2 rounded-full text-xs">
+                    🔇 Musik
+                </button>
+            </div>
+        </div>
+
+        <!-- Tug of War Area -->
+        <div class="relative h-48 bg-gray-900 rounded-xl overflow-hidden border-2 border-gray-700 mb-8 flex items-center justify-center">
+            <div class="absolute inset-0 flex justify-center pointer-events-none">
+                <div class="w-1 h-full bg-white opacity-20"></div>
+            </div>
+
+            <div id="ropeContainer" class="relative w-full flex items-center justify-center transition-all duration-500" style="transform: translateX(0px);">
+                <div class="rope">
+                    <div class="marker"></div>
+                </div>
+
+                <div class="absolute left-[-250px] flex flex-col items-center">
+                    <div class="character">👨‍💻</div>
+                    <span class="team-label text-blue-400 mt-2">Teknisi Jaringan</span>
+                </div>
+
+                <div class="absolute right-[-250px] flex flex-col items-center">
+                    <div class="character">👾</div>
+                    <span class="team-label text-red-400 mt-2">Gangguan Bug</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Question Area -->
+        <div id="questionBox" class="flex-grow flex flex-col items-center justify-center space-y-6">
+            <div class="w-full bg-gray-700 p-6 rounded-2xl border-l-8 border-blue-500 shadow-inner">
+                <p id="questionText" class="text-xl md:text-2xl font-medium text-center">Menunggu permainan dimulai...</p>
+            </div>
+
+            <div id="optionsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+                <!-- Tombol pilihan jawaban -->
+            </div>
+        </div>
+
+        <div id="feedback" class="mt-4 text-center font-bold text-lg h-8"></div>
+
+        <!-- Start Overlay -->
+        <div id="startOverlay" class="overlay-screen absolute inset-0 z-[60] flex flex-col items-center justify-center rounded-3xl p-8">
+            <div class="text-6xl mb-6">🌐</div>
+            <h2 class="text-4xl font-bold mb-4 text-blue-400 text-center">Siap Mengamankan Jaringan?</h2>
+            <p class="text-gray-300 text-center mb-8 max-w-md">Klik tombol di bawah untuk memutar musik dan memulai misi pemeliharaan jaringan lokal!</p>
+            <button onclick="startGame()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 px-12 rounded-full text-2xl transition-transform active:scale-95 shadow-lg">
+                Mulai Game
+            </button>
+        </div>
+
+        <!-- Win/Loss Overlay -->
+        <div id="endOverlay" class="overlay-screen absolute inset-0 z-50 hidden flex flex-col items-center justify-center rounded-3xl p-8 text-center">
+            <div id="winIcon" class="text-8xl mb-4">🏆</div>
+            <h2 id="winTitle" class="text-4xl font-bold mb-4">Misi Berhasil!</h2>
+            <p id="winMessage" class="text-xl mb-8">Koneksi internet stabil dan aman.</p>
+            <button onclick="resetGame()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-full text-xl transition-transform active:scale-95">
+                Main Lagi
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const questions = [
+            { q: "Apa kepanjangan dari LAN?", options: ["Local Area Network", "Large Area Network", "Link Access Node", "Local Array Net"], correct: 0 },
+            { q: "Perangkat yang digunakan untuk menghubungkan beberapa jaringan yang berbeda adalah...", options: ["Switch", "Hub", "Router", "Kabel UTP"], correct: 2 },
+            { q: "Manakah yang merupakan alamat IP (IPv4) yang valid?", options: ["192.168.1.1", "256.0.0.1", "172.16.0", "google.com"], correct: 0 },
+            { q: "Kumpulan komputer yang terhubung dalam skala global disebut...", options: ["Intranet", "Extranet", "Internet", "PAN"], correct: 2 },
+            { q: "Topologi jaringan yang menggunakan satu kabel pusat sebagai jalur utama adalah...", options: ["Star", "Ring", "Bus", "Mesh"], correct: 2 },
+            { q: "Protokol yang digunakan untuk mengirim email adalah...", options: ["HTTP", "FTP", "SMTP", "DNS"], correct: 2 },
+            { q: "WWW adalah singkatan dari...", options: ["World Wide Web", "Web Wide World", "Wide World Web", "World Web Wide"], correct: 0 },
+            { q: "Alat untuk mengubah sinyal digital menjadi analog dan sebaliknya adalah...", options: ["Router", "Bridge", "Modem", "Repeater"], correct: 2 },
+            { q: "Jaringan nirkabel jarak pendek biasanya menggunakan teknologi...", options: ["Fiber Optic", "Bluetooth", "Satelit", "Kabel Coaxial"], correct: 1 },
+            { q: "Satuan kecepatan transfer data adalah...", options: ["Watt", "Hertz", "bps (bit per second)", "Pixel"], correct: 2 }
+        ];
+
+        let currentQuestionIndex = 0;
+        let ropePosition = 0;
+        const WIN_THRESHOLD = 150;
+
+        const bgMusic = document.getElementById('bgMusic');
+        const ropeContainer = document.getElementById('ropeContainer');
+        const questionText = document.getElementById('questionText');
+        const optionsContainer = document.getElementById('optionsContainer');
+        const feedback = document.getElementById('feedback');
+        const startOverlay = document.getElementById('startOverlay');
+        const endOverlay = document.getElementById('endOverlay');
+        const winTitle = document.getElementById('winTitle');
+        const winIcon = document.getElementById('winIcon');
+        const winMessage = document.getElementById('winMessage');
+        const musicToggle = document.getElementById('musicToggle');
+
+        function startGame() {
+            startOverlay.classList.add('hidden');
+            bgMusic.play().catch(e => console.log("Audio play blocked", e));
+            musicToggle.innerText = "🔊 Musik";
+            initGame();
+        }
+
+        function toggleMusic() {
+            if (bgMusic.paused) {
+                bgMusic.play();
+                musicToggle.innerText = "🔊 Musik";
+            } else {
+                bgMusic.pause();
+                musicToggle.innerText = "🔇 Musik";
+            }
+        }
+
+        function initGame() {
+            ropePosition = 0;
+            currentQuestionIndex = 0;
+            updateRope();
+            loadQuestion();
+            endOverlay.classList.add('hidden');
+        }
+
+        function loadQuestion() {
+            if (currentQuestionIndex >= questions.length) {
+                currentQuestionIndex = 0;
+            }
+            
+            const qData = questions[currentQuestionIndex];
+            questionText.innerText = qData.q;
+            optionsContainer.innerHTML = '';
+            feedback.innerText = '';
+
+            qData.options.forEach((opt, index) => {
+                const btn = document.createElement('button');
+                btn.className = "answer-btn bg-gray-600 hover:bg-blue-600 text-white p-4 rounded-xl text-left border-b-4 border-black/30 font-medium";
+                btn.innerText = opt;
+                btn.onclick = () => checkAnswer(index);
+                optionsContainer.appendChild(btn);
+            });
+        }
+
+        function checkAnswer(selectedIndex) {
+            const qData = questions[currentQuestionIndex];
+            const isCorrect = selectedIndex === qData.correct;
+
+            if (isCorrect) {
+                feedback.innerText = "BENAR! Menarik data...";
+                feedback.className = "mt-4 text-center font-bold text-lg h-8 text-green-400";
+                pullRope(50);
+            } else {
+                feedback.innerText = "SALAH! Gangguan menyerang!";
+                feedback.className = "mt-4 text-center font-bold text-lg h-8 text-red-400";
+                document.querySelector('.game-container').classList.add('shake');
+                setTimeout(() => document.querySelector('.game-container').classList.remove('shake'), 500);
+                pullRope(-50);
+            }
+
+            currentQuestionIndex++;
+            
+            setTimeout(() => {
+                if (Math.abs(ropePosition) < WIN_THRESHOLD) {
+                    loadQuestion();
+                }
+            }, 1000);
+        }
+
+        function pullRope(amount) {
+            ropePosition += amount;
+            updateRope();
+
+            if (ropePosition >= WIN_THRESHOLD) {
+                showGameOver(true);
+            } else if (ropePosition <= -WIN_THRESHOLD) {
+                showGameOver(false);
+            }
+        }
+
+        function updateRope() {
+            ropeContainer.style.transform = `translateX(${ropePosition}px)`;
+        }
+
+        function showGameOver(playerWon) {
+            endOverlay.classList.remove('hidden');
+            if (playerWon) {
+                winIcon.innerText = "🚀";
+                winTitle.innerText = "Koneksi Stabil!";
+                winTitle.className = "text-4xl font-bold mb-4 text-green-400";
+                winMessage.innerText = "Hebat! Kamu berhasil membangun jaringan LAN yang kuat dan aman.";
+            } else {
+                winIcon.innerText = "📡❌";
+                winTitle.innerText = "RTO / Lag!";
+                winTitle.className = "text-4xl font-bold mb-4 text-red-400";
+                winMessage.innerText = "Waduh, jaringan terputus oleh gangguan. Coba pelajari lagi konsep dasarnya!";
+            }
+        }
+
+        function resetGame() {
+            initGame();
+        }
+    </script>
+</body>
+</html>
